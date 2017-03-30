@@ -4,8 +4,10 @@ import { Link } from 'react-router';
 const Artists = (props) => {
 
   const artists = props.artists;
+  console.log("PROPS TO ARTISTS", props)
 
   return (
+
     <div>
       <h3>Artists</h3>
       <div className="list-group">
@@ -19,6 +21,8 @@ const Artists = (props) => {
           })
         }
       </div>
+
+
     </div>
   );
 }
