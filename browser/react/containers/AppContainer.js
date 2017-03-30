@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import axios from 'axios';
+import {hashHistory} from 'react-router';
 
 import initialState from '../initialState';
 
@@ -18,6 +19,8 @@ export default class AppContainer extends Component {
 
     this.selectAlbum = this.selectAlbum.bind(this);
     this.selectArtist = this.selectArtist.bind(this);
+    this.addPlaylist = this.addPlaylist.bind(this);
+    this.selectPlaylist = this.selectPlaylist.bind(this);
   }
 
   componentDidMount () {
@@ -25,16 +28,18 @@ export default class AppContainer extends Component {
     Promise
       .all([
         axios.get('/api/albums/'),
-        axios.get('/api/artists/')
+        axios.get('/api/artists/'),
+        axios.get('/api/playlists/'),
       ])
       .then(res => res.map(r => r.data))
       .then(data => this.onLoad(...data));
   }
 
-  onLoad (albums, artists) {
+  onLoad (albums, artists, playlists) {
     this.setState({
       albums: convertAlbums(albums),
-      artists: artists
+      artists: artists,
+      playlists: playlists,
     });
   }
 
@@ -57,6 +62,38 @@ export default class AppContainer extends Component {
       .then(data => this.onLoadArtist(...data));
   }
 
+  selectPlaylist (playlistId) {
+    Promise
+      .all([
+        axios.get(`/api/playlists/${playlistId}`),
+        axios.get(`/api/playlists/${playlistId}/songs`),
+      ])
+      .then(res => res.map(r => r.data))
+      .then(data => {
+        let playlistObj=data[0];
+        let convSongsArr=data[1].map(convertSong);
+        playlistObj.songs=convSongsArr;
+        this.setState(
+          {
+            selectedPlaylist: playlistObj,
+          }
+        )
+      })
+
+  }
+
+  addPlaylist (playlistName) {
+    axios.post('/api/playlists', { name: playlistName })
+      .then(res => res.data)
+      .then(playlist => {
+        this.setState({
+          playlists: [...this.state.playlists, playlist]
+        });
+        let newpath=`/playlists/${playlist.id}`;
+        hashHistory.push(newpath);
+      })
+  }
+
   onLoadArtist (artist, albums, songs) {
     songs = songs.map(convertSong);
     albums = convertAlbums(albums);
@@ -70,13 +107,15 @@ export default class AppContainer extends Component {
 
     const props = Object.assign({}, this.state, {
       selectAlbum: this.selectAlbum,
-      selectArtist: this.selectArtist
+      selectArtist: this.selectArtist,
+      addPlaylist: this.addPlaylist,
+      selectPlaylist: this.selectPlaylist,
     });
 
     return (
       <div id="main" className="container-fluid">
         <div className="col-xs-2">
-          <Sidebar />
+          <Sidebar playlists={this.state.playlists} selectPlaylist={this.selectPlaylist}/>
         </div>
         <div className="col-xs-10">
         {
